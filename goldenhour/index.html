@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GoldenHour — Pre-Hospital Emergency Telemetry Gateway</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Maps JavaScript API with Provided Key -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFJPEIMuUF6sF20yd0yaa5Wy4lhL4eLLE&libraries=geometry,places"></script>
+
+  <!-- Leaflet CSS & JS for Resilient Map Fallback -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Chart.js CDN for Real-Time Vital Trend Sparklines -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Healthcare Emergency Stylesheet -->
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="h-full flex flex-col bg-[#0a1128] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+
+  <!-- TOP GLOBAL STATUS BAR -->
+  <header class="h-16 bg-[#0c1429] border-b border-[#1e3260] px-4 md:px-6 flex items-center justify-between shrink-0 z-40 sticky top-0 shadow-lg">
+    
+    <!-- Left: Brand Logo & Mobile Menu Toggle -->
+    <div class="flex items-center gap-3">
+      <button onclick="document.getElementById('sidebar-nav').classList.toggle('-translate-x-full')" class="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+
+      <a href="#/home" class="flex items-center gap-2.5 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-amber-500 flex items-center justify-center shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
+          <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <span class="text-lg font-extrabold text-white tracking-tight flex items-center gap-1.5">
+            Golden<span class="text-amber-400">Hour</span>
+          </span>
+          <div class="text-[9px] uppercase tracking-wider font-semibold text-slate-400 -mt-1 hidden sm:block">
+            Pre-Hospital Telemetry Gateway
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Center/Right: Quick Doctor Portal Trigger & Telemetry Status Badges -->
+    <div class="flex items-center gap-3 md:gap-4 text-xs">
+      
+      <!-- Primary Doctor Portal Quick Button in Header -->
+      <a href="#/doctor" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center gap-1.5">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Doctor Portal</span>
+      </a>
+
+      <!-- Active Ambulance Unit Badge -->
+      <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+        <span class="text-slate-400 font-medium">Unit:</span>
+        <strong id="global-ambulance-id" class="text-white font-mono">AMB-07</strong>
+      </div>
+
+      <!-- Receiving Hospital Badge -->
+      <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+        <span class="text-slate-400 font-medium">Hospital:</span>
+        <strong id="global-hospital-badge" class="text-blue-400 font-semibold truncate max-w-[150px]">City Trauma Centre</strong>
+      </div>
+
+      <!-- Last Sync Timestamp -->
+      <div class="hidden xl:flex items-center gap-1.5 text-slate-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+        <span>Sync: <strong id="global-last-sync" class="text-slate-200 font-mono">10:11 AM</strong></span>
+      </div>
+
+      <!-- User Role Switcher Dropdown -->
+      <div class="flex items-center gap-1 bg-[#101f42] border border-[#1e3260] rounded-lg px-2 py-1">
+        <span class="text-[10px] text-slate-400 hidden md:inline">Role:</span>
+        <select id="global-role-select" onchange="window.GoldenHourApp.handleRoleChange(event)" class="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer">
+          <option value="Paramedic" class="bg-slate-900 text-white">Paramedic (AMB-07)</option>
+          <option value="Emergency Physician" class="bg-slate-900 text-white">Emergency Physician</option>
+          <option value="Hospital Coordinator" class="bg-slate-900 text-white">Trauma Coordinator</option>
+          <option value="Ambulance Operations" class="bg-slate-900 text-white">Ambulance Operations</option>
+          <option value="Hospital Administrator" class="bg-slate-900 text-white">Hospital Administrator</option>
+        </select>
+      </div>
+
+      <!-- Notifications Bell Icon with Badge -->
+      <button onclick="window.GoldenHourApp.toggleNotificationsDrawer()" class="relative p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span id="notif-badge-count" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center">2</span>
+      </button>
+
+    </div>
+  </header>
+
+
+  <!-- MAIN CONTAINER (SIDEBAR + DYNAMIC CONTENT VIEW) -->
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- DESKTOP OPERATIONAL SIDEBAR (SAFE MODE REMOVED, DOCTOR PORTAL FEATURED) -->
+    <aside id="sidebar-nav" class="w-64 bg-[#0a1128] border-r border-[#1e3260] flex flex-col shrink-0 z-30 transition-transform duration-300 absolute lg:relative inset-y-0 left-0 -translate-x-full lg:translate-x-0 overflow-y-auto">
+      
+      <div class="p-3 space-y-1 text-xs font-medium">
+        
+        <!-- DOCTOR PORTAL FEATURED LINK -->
+        <a href="#/doctor" data-nav-target="doctor" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-emerald-300 bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-950/70 transition-all mb-2 font-bold shadow-sm">
+          <div class="flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Doctor Portal</span>
+          </div>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        </a>
+
+        <div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Core Response
+        </div>
+
+        <a href="#/home" data-nav-target="home" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Home Overview
+        </a>
+
+        <a href="#/patient" data-nav-target="patient" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span>Incoming Patient</span>
+          </div>
+          <span class="w-2 h-2 rounded-full bg-red-500 beacon-red"></span>
+        </a>
+
+        <a href="#/tracking" data-nav-target="tracking" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          Live Tracking (Google Maps)
+        </a>
+
+        <a href="#/lifelink" data-nav-target="lifelink" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+          LifeLink AI Chatbot
+        </a>
+
+        <a href="#/priority" data-nav-target="priority" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          Priority Records & Events
+        </a>
+
+        <div class="px-3 py-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Clinical & Logistics
+        </div>
+
+        <a href="#/medicapture" data-nav-target="medicapture" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          MediCapture Vault
+        </a>
+
+        <a href="#/devices" data-nav-target="devices" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            <span>Device Status</span>
+          </div>
+          <span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800">1 Unstable</span>
+        </a>
+
+        <a href="#/hospitals" data-nav-target="hospitals" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/></svg>
+          Hospital Finder
+        </a>
+
+        <div class="px-3 py-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Governance & Support
+        </div>
+
+        <a href="#/feedback" data-nav-target="feedback" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Reviews & Feedback
+        </a>
+
+        <a href="#/faq" data-nav-target="faq" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors">
+          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Frequently Asked Qs
+        </a>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="mt-auto p-4 border-t border-[#1e3260] bg-[#0c1429] text-[11px] space-y-1.5">
+        <div class="flex items-center justify-between text-slate-400">
+          <span>Active Case:</span>
+          <span class="font-mono text-white font-bold">GH-1042</span>
+        </div>
+        <div class="text-[10px] text-slate-400">
+          Ambulance Telemetry Gateway Active
+        </div>
+      </div>
+    </aside>
+
+
+    <!-- DYNAMIC VIEW CONTENT WRAPPER -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#0a1128]">
+      <div id="view-container" class="max-w-7xl mx-auto">
+        <!-- Injected dynamically by router -->
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- SLIDE-OVER NOTIFICATIONS DRAWER -->
+  <aside id="notifications-drawer" class="fixed top-16 right-0 bottom-0 w-80 sm:w-96 bg-[#0c1429] border-l border-[#1e3260] z-50 transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+    <div class="p-4 border-b border-[#1e3260] flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <h3 class="text-sm font-bold text-white">Emergency Dispatch Notifications</h3>
+      </div>
+      <button onclick="window.GoldenHourApp.toggleNotificationsDrawer()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+    </div>
+
+    <div class="p-3 border-b border-slate-800 flex justify-between items-center bg-[#0a1128] text-xs">
+      <span class="text-slate-400">Recent Telemetry Alerts</span>
+      <button onclick="window.GoldenHourApp.markAllNotificationsRead()" class="text-blue-400 hover:underline">
+        Mark all read
+      </button>
+    </div>
+
+    <div id="notifications-list" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+      <!-- Injected dynamically -->
+    </div>
+  </aside>
+
+
+  <!-- GLOBAL MODAL BACKDROP & CONTAINER -->
+  <div id="global-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 drawer-backdrop">
+    <div class="bg-[#0c1429] border border-[#1e3260] rounded-2xl p-6 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="window.GoldenHourApp.closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+      <div id="global-modal-content">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TOAST CONTAINER FOR HIGH-PRIORITY CLINICAL ALERTS -->
+  <div id="toast-container"></div>
+
+
+  <!-- CORE SCRIPT INJECTIONS -->
+  <script src="js/icons.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/telemetry.js"></script>
+  
+  <!-- VIEW MODULES -->
+  <script src="js/views/home.js"></script>
+  <script src="js/views/doctor.js"></script>
+  <script src="js/views/patient.js"></script>
+  <script src="js/views/tracking.js"></script>
+  <script src="js/views/devices.js"></script>
+  <script src="js/views/medicapture.js"></script>
+  <script src="js/views/priority.js"></script>
+  <script src="js/views/lifelink.js"></script>
+  <script src="js/views/hospitals.js"></script>
+  <script src="js/views/feedback.js"></script>
+  <script src="js/views/faq.js"></script>
+
+  <!-- MASTER APP BOOTSTRAP -->
+  <script src="js/app.js"></script>
+
+</body>
+</html>

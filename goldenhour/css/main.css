@@ -1,0 +1,197 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --color-bg-primary: #0a1128;
+  --color-bg-secondary: #101f42;
+  --color-bg-tertiary: #172a59;
+  --color-surface-card: #0e172e;
+  --color-surface-card-hover: #152244;
+  --color-border: #1e3260;
+  --color-border-subtle: #17274c;
+  
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+  
+  --color-emergency-red: #ef4444;
+  --color-emergency-red-bg: rgba(239, 68, 68, 0.12);
+  --color-emergency-red-border: rgba(239, 68, 68, 0.35);
+  
+  --color-caution-amber: #f59e0b;
+  --color-caution-amber-bg: rgba(245, 158, 11, 0.12);
+  --color-caution-amber-border: rgba(245, 158, 11, 0.35);
+  
+  --color-telemetry-green: #10b981;
+  --color-telemetry-green-bg: rgba(16, 185, 129, 0.12);
+  --color-telemetry-green-border: rgba(16, 185, 129, 0.35);
+  
+  --color-vital-blue: #3b82f6;
+  --color-vital-blue-bg: rgba(59, 130, 246, 0.12);
+  --color-vital-blue-border: rgba(59, 130, 246, 0.35);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-main);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-subtle);
+}
+
+/* Grid & Telemetry Canvas Background */
+.telemetry-grid-bg {
+  background-image: 
+    linear-gradient(rgba(30, 50, 96, 0.25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 50, 96, 0.25) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.ecg-grid {
+  background-image: 
+    linear-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Radar & Pulse Animations */
+@keyframes pulse-beacon {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes pulse-amber {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.beacon-red {
+  animation: pulse-beacon 2s infinite;
+}
+
+.beacon-green {
+  animation: pulse-green 2.5s infinite;
+}
+
+.beacon-amber {
+  animation: pulse-amber 2s infinite;
+}
+
+/* Glass & Card Surfaces */
+.glass-panel {
+  background: rgba(14, 23, 46, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+.clinical-card {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.clinical-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.clinical-card-critical {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, var(--color-surface-card) 100%);
+  border: 1px solid var(--color-emergency-red-border);
+}
+
+.clinical-card-warning {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, var(--color-surface-card) 100%);
+  border: 1px solid var(--color-caution-amber-border);
+}
+
+.clinical-card-healthy {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, var(--color-surface-card) 100%);
+  border: 1px solid var(--color-telemetry-green-border);
+}
+
+/* Monospace telemetry fonts */
+.telemetry-num {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Leaflet dark theme override */
+.leaflet-container {
+  background-color: #0b1329 !important;
+  font-family: var(--font-sans) !important;
+}
+
+.custom-ambulance-icon {
+  background: transparent;
+  border: none;
+}
+
+/* Slide-over drawers & Modals */
+.drawer-backdrop {
+  background: rgba(10, 17, 40, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+/* Toast container */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  animation: slideInRight 0.25s ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
